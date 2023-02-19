@@ -1,0 +1,14 @@
+[server.pv.addon.broadcast]
+broadcasting_wide = "Broadcasting to %s-wide"
+broadcasting_specific = "Broadcasting to %s"
+
+[server.pv.addon.broadcast.command]
+usage = "Usage: /vbroadcastproxy <server|proxy> <server names>"
+
+server_usage = "Usage: /vbroadcastproxy server <server names>"
+server_set = "Set broadcast with mode server to %s"
+
+proxy_set = "Set broadcast with mode proxy"
+
+[client.pv.activation]
+broadcast = "Broadcast"
