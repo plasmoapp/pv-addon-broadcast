@@ -81,7 +81,7 @@ public final class ProxyBroadcastCommand implements MinecraftProxyCommand {
         if (subCommand.equals("server") && hasPermission(source, "server")) {
             List<String> argumentsList = ImmutableList.copyOf(arguments);
 
-            return voiceProxy.getMinecraftProxy()
+            return voiceProxy.getMinecraftServer()
                     .getServers()
                     .stream()
                     .map(MinecraftProxyServerInfo::getName)

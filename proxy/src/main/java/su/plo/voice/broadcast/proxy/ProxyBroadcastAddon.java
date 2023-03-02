@@ -64,14 +64,14 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                 voiceProxy.getActivationManager(),
                 voiceProxy.getSourceLineManager(),
                 voiceProxy.getUdpConnectionManager(),
-                voiceProxy.getMinecraftProxy().getPermissionsManager(),
+                voiceProxy.getMinecraftServer().getPermissionsManager(),
                 "proxy"
         );
     }
 
     @EventSubscribe
     public void onCommandsRegister(@NotNull CommandsRegisterEvent event) {
-        PermissionsManager permissions = event.getVoiceProxy().getMinecraftProxy().getPermissionsManager();
+        PermissionsManager permissions = event.getVoiceProxy().getMinecraftServer().getPermissionsManager();
 
         permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
         permissions.register("pv.addon.broadcast.proxy", PermissionDefault.OP);
@@ -145,7 +145,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                     return BroadcastSource.Result.BAD_ARGUMENTS;
                 }
 
-                List<MinecraftProxyServerInfo> servers = voiceProxy.getMinecraftProxy().getServers()
+                List<MinecraftProxyServerInfo> servers = voiceProxy.getMinecraftServer().getServers()
                         .stream()
                         .filter(server -> arguments.contains(server.getName()))
                         .collect(Collectors.toList());
