@@ -2,7 +2,6 @@ package su.plo.voice.broadcast.proxy.source;
 
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.proxy.server.MinecraftProxyServerInfo;
-import su.plo.voice.api.proxy.audio.source.ProxySourceManager;
 import su.plo.voice.api.proxy.player.VoiceProxyPlayer;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
 import su.plo.voice.broadcast.source.BroadcastSource;
@@ -13,11 +12,10 @@ public final class ServerBroadcastSource extends BroadcastSource<VoiceProxyPlaye
 
     private final List<MinecraftProxyServerInfo> servers;
 
-    public ServerBroadcastSource(@NotNull ProxySourceManager sourceManager,
-                                 @NotNull ServerDirectSource source,
+    public ServerBroadcastSource(@NotNull ServerDirectSource source,
                                  @NotNull VoiceProxyPlayer player,
                                  @NotNull List<MinecraftProxyServerInfo> servers) {
-        super(sourceManager, source, player);
+        super(source, player);
 
         this.servers = servers;
         initialize();

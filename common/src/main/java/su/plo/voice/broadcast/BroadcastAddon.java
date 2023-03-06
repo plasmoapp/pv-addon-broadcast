@@ -6,26 +6,20 @@ import org.jetbrains.annotations.NotNull;
 import su.plo.config.provider.ConfigurationProvider;
 import su.plo.config.provider.toml.TomlConfiguration;
 import su.plo.lib.api.chat.MinecraftTextComponent;
-import su.plo.lib.api.server.permission.PermissionsManager;
-import su.plo.voice.api.PlasmoVoice;
 import su.plo.voice.api.event.EventSubscribe;
-import su.plo.voice.api.server.audio.capture.ServerActivationManager;
-import su.plo.voice.api.server.audio.line.ServerSourceLineManager;
-import su.plo.voice.api.server.audio.source.BaseServerSourceManager;
+import su.plo.voice.api.server.PlasmoBaseVoiceServer;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.config.ServerLanguages;
-import su.plo.voice.api.server.connection.UdpConnectionManager;
 import su.plo.voice.api.server.event.player.PlayerJoinEvent;
 import su.plo.voice.api.server.event.player.PlayerQuitEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
-import su.plo.voice.api.server.socket.UdpConnection;
 import su.plo.voice.broadcast.activation.BroadcastActivation;
 import su.plo.voice.broadcast.activation.BroadcastWidePrinter;
 import su.plo.voice.broadcast.config.BroadcastConfig;
 import su.plo.voice.broadcast.source.BroadcastSource;
 import su.plo.voice.broadcast.state.BroadcastStateStore;
 import su.plo.voice.broadcast.state.JsonBroadcastStateStore;
+import su.plo.voice.proto.data.audio.codec.opus.OpusDecoderInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,7 +37,7 @@ public abstract class BroadcastAddon {
     @Getter
     protected BroadcastStateStore stateStore;
 
-    private BroadcastActivation broadcastActivation;
+    protected BroadcastActivation broadcastActivation;
 
     @EventSubscribe
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
@@ -63,14 +57,9 @@ public abstract class BroadcastAddon {
         removeBroadcastSource(event.getPlayerId());
     }
 
-    protected synchronized void loadConfig(@NotNull PlasmoVoice voice,
-                                           @NotNull ServerLanguages languages,
-                                           @NotNull ServerActivationManager activations,
-                                           @NotNull ServerSourceLineManager sourceLines,
-                                           @NotNull UdpConnectionManager<? extends VoicePlayer, ? extends UdpConnection> udpConnections,
-                                           @NotNull PermissionsManager permissions,
+    protected synchronized void loadConfig(@NotNull PlasmoBaseVoiceServer voiceServer,
                                            @NotNull String languageFolder) {
-        File addonFolder = new File(voice.getConfigFolder(), "addons/broadcast");
+        File addonFolder = new File(voiceServer.getConfigFolder(), "addons/broadcast");
         addonFolder.mkdirs();
 
         try {
@@ -79,7 +68,7 @@ public abstract class BroadcastAddon {
             this.config = toml.load(BroadcastConfig.class, configFile, false);
             toml.save(BroadcastConfig.class, config, configFile);
 
-            languages.register(
+            voiceServer.getLanguages().register(
                     (resourcePath) -> getLanguageResource(languageFolder, resourcePath),
                     new File(addonFolder, "languages")
             );
@@ -89,7 +78,7 @@ public abstract class BroadcastAddon {
 
         try {
             this.stateStore = new JsonBroadcastStateStore(
-                    voice.getBackgroundExecutor(),
+                    voiceServer.getBackgroundExecutor(),
                     new File(addonFolder, "states.json")
             );
             stateStore.load();
@@ -101,15 +90,14 @@ public abstract class BroadcastAddon {
             BroadcastWidePrinter broadcastWidePrinter = new BroadcastWidePrinter(this);
 
             this.broadcastActivation = new BroadcastActivation(
-                    udpConnections,
-                    permissions,
+                    voiceServer,
                     this,
                     broadcastWidePrinter
             );
-            broadcastActivation.register(activations, sourceLines);
+            broadcastActivation.register();
 
-            voice.getEventBus().register(this, broadcastActivation);
-            voice.getEventBus().register(this, broadcastWidePrinter);
+            voiceServer.getEventBus().register(this, broadcastActivation);
+            voiceServer.getEventBus().register(this, broadcastWidePrinter);
         }
     }
 
@@ -141,12 +129,7 @@ public abstract class BroadcastAddon {
         if (broadcastActivation.getSourceLine() == null)
             throw new IllegalStateException("Broadcast source line is not initialized");
 
-        return getSourceManager().createDirectSource(
-                this,
-                broadcastActivation.getSourceLine(),
-                "opus",
-                false
-        );
+        return broadcastActivation.getSourceLine().createDirectSource(false, new OpusDecoderInfo());
     }
 
     private InputStream getLanguageResource(@NotNull String languageFolder,
@@ -161,8 +144,4 @@ public abstract class BroadcastAddon {
                                                                      @NotNull List<String> arguments);
 
     public abstract VoicePlayerManager<?> getPlayerManager();
-
-    public abstract BaseServerSourceManager getSourceManager();
-
-    public abstract ServerSourceLineManager getSourceLineManager();
 }

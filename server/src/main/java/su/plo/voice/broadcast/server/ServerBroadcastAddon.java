@@ -1,6 +1,7 @@
 package su.plo.voice.broadcast.server;
 
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
 import su.plo.lib.api.server.permission.PermissionDefault;
@@ -10,10 +11,7 @@ import su.plo.voice.api.addon.AddonScope;
 import su.plo.voice.api.addon.annotation.Addon;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoVoiceServer;
-import su.plo.voice.api.server.audio.line.ServerSourceLineManager;
-import su.plo.voice.api.server.audio.source.BaseServerSourceManager;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.event.VoiceServerInitializeEvent;
 import su.plo.voice.api.server.event.command.CommandsRegisterEvent;
 import su.plo.voice.api.server.event.config.VoiceServerConfigLoadedEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
@@ -34,26 +32,14 @@ import java.util.stream.Collectors;
 @Addon(id = "broadcast", scope = AddonScope.SERVER, version = "1.0.0", authors = {"Apehum"})
 public final class ServerBroadcastAddon extends BroadcastAddon {
 
+    @Inject
     private PlasmoVoiceServer voiceServer;
-
-    @EventSubscribe
-    public void onServerInitialize(@NotNull VoiceServerInitializeEvent event) {
-        this.voiceServer = event.getServer();
-    }
 
     @EventSubscribe
     public void onConfigLoaded(@NotNull VoiceServerConfigLoadedEvent event) {
         PlasmoVoiceServer voiceServer = event.getServer();
 
-        loadConfig(
-                voiceServer,
-                voiceServer.getLanguages(),
-                voiceServer.getActivationManager(),
-                voiceServer.getSourceLineManager(),
-                voiceServer.getUdpConnectionManager(),
-                voiceServer.getMinecraftServer().getPermissionsManager(),
-                "server"
-        );
+        loadConfig(voiceServer, "server");
     }
 
     @EventSubscribe
@@ -133,7 +119,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                 ServerDirectSource directSource = getDirectSource(player);
                 sourceByPlayerId.put(
                         player.getInstance().getUUID(),
-                        new RangeBroadcastSource(voiceServer.getSourceManager(), directSource, player, range)
+                        new RangeBroadcastSource(directSource, player, range)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
 
@@ -147,7 +133,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                 ServerDirectSource directSource = getDirectSource(player);
                 sourceByPlayerId.put(
                         player.getInstance().getUUID(),
-                        new GlobalBroadcastSource(voiceServer.getSourceManager(), directSource, player)
+                        new GlobalBroadcastSource(directSource, player)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
 
@@ -174,7 +160,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                 ServerDirectSource directSource = getDirectSource(player);
                 sourceByPlayerId.put(
                         player.getInstance().getUUID(),
-                        new WorldBroadcastSource(voiceServer.getSourceManager(), directSource, player, worlds)
+                        new WorldBroadcastSource(directSource, player, worlds)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
 
@@ -189,15 +175,5 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
     @Override
     public VoicePlayerManager<?> getPlayerManager() {
         return voiceServer.getPlayerManager();
-    }
-
-    @Override
-    public BaseServerSourceManager getSourceManager() {
-        return voiceServer.getSourceManager();
-    }
-
-    @Override
-    public ServerSourceLineManager getSourceLineManager() {
-        return voiceServer.getSourceLineManager();
     }
 }

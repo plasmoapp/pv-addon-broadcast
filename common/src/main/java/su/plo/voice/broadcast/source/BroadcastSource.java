@@ -3,14 +3,12 @@ package su.plo.voice.broadcast.source;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
-import su.plo.voice.api.server.audio.source.BaseServerSourceManager;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
 import su.plo.voice.api.server.player.VoicePlayer;
 
 @RequiredArgsConstructor
 public abstract class BroadcastSource<P extends VoicePlayer> {
 
-    protected final BaseServerSourceManager sourceManager;
     @Getter
     protected final ServerDirectSource source;
     @Getter
@@ -27,7 +25,7 @@ public abstract class BroadcastSource<P extends VoicePlayer> {
     }
 
     public void close() {
-        sourceManager.remove(source.getId());
+        source.getLine().removeSource(source.getId());
     }
 
     public enum Result {

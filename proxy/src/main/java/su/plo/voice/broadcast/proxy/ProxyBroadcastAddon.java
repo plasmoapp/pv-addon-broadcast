@@ -15,8 +15,6 @@ import su.plo.voice.api.proxy.event.VoiceProxyInitializeEvent;
 import su.plo.voice.api.proxy.event.command.CommandsRegisterEvent;
 import su.plo.voice.api.proxy.event.config.VoiceProxyConfigLoadedEvent;
 import su.plo.voice.api.proxy.player.VoiceProxyPlayer;
-import su.plo.voice.api.server.audio.line.ServerSourceLineManager;
-import su.plo.voice.api.server.audio.source.BaseServerSourceManager;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
@@ -58,15 +56,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
     public void onConfigLoaded(@NotNull VoiceProxyConfigLoadedEvent event) {
         PlasmoVoiceProxy voiceProxy = event.getProxy();
 
-        loadConfig(
-                voiceProxy,
-                voiceProxy.getLanguages(),
-                voiceProxy.getActivationManager(),
-                voiceProxy.getSourceLineManager(),
-                voiceProxy.getUdpConnectionManager(),
-                voiceProxy.getMinecraftServer().getPermissionsManager(),
-                "proxy"
-        );
+        loadConfig(voiceProxy, "proxy");
     }
 
     @EventSubscribe
@@ -130,7 +120,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                 ServerDirectSource directSource = getDirectSource(player);
                 sourceByPlayerId.put(
                         player.getInstance().getUUID(),
-                        new GlobalBroadcastSource(voiceProxy.getSourceManager(), directSource, player)
+                        new GlobalBroadcastSource(directSource, player)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
 
@@ -155,7 +145,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                 ServerDirectSource directSource = getDirectSource(player);
                 sourceByPlayerId.put(
                         player.getInstance().getUUID(),
-                        new ServerBroadcastSource(voiceProxy.getSourceManager(), directSource, player, servers)
+                        new ServerBroadcastSource(directSource, player, servers)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
 
@@ -171,15 +161,5 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
     @Override
     public VoicePlayerManager<?> getPlayerManager() {
         return voiceProxy.getPlayerManager();
-    }
-
-    @Override
-    public BaseServerSourceManager getSourceManager() {
-        return voiceProxy.getSourceManager();
-    }
-
-    @Override
-    public ServerSourceLineManager getSourceLineManager() {
-        return voiceProxy.getSourceLineManager();
     }
 }

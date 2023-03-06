@@ -3,7 +3,6 @@ package su.plo.voice.broadcast.server.source;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.server.world.ServerPos3d;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.audio.source.ServerSourceManager;
 import su.plo.voice.api.server.player.VoiceServerPlayer;
 import su.plo.voice.broadcast.source.BroadcastSource;
 
@@ -14,11 +13,10 @@ public final class RangeBroadcastSource extends BroadcastSource<VoiceServerPlaye
     private final ServerPos3d playerPosition = new ServerPos3d();
     private final ServerPos3d connectionPosition = new ServerPos3d();
 
-    public RangeBroadcastSource(@NotNull ServerSourceManager sourceManager,
-                                @NotNull ServerDirectSource source,
+    public RangeBroadcastSource(@NotNull ServerDirectSource source,
                                 @NotNull VoiceServerPlayer player,
                                 int distance) {
-        super(sourceManager, source, player);
+        super(source, player);
 
         this.distanceSquared = distance * distance;
         initialize();

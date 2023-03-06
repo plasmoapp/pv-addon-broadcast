@@ -3,27 +3,18 @@ package su.plo.voice.broadcast.activation;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import su.plo.lib.api.server.permission.PermissionDefault;
-import su.plo.lib.api.server.permission.PermissionsManager;
 import su.plo.voice.api.event.EventPriority;
 import su.plo.voice.api.event.EventSubscribe;
+import su.plo.voice.api.server.PlasmoBaseVoiceServer;
 import su.plo.voice.api.server.audio.capture.SelfActivationInfo;
 import su.plo.voice.api.server.audio.capture.ServerActivation;
-import su.plo.voice.api.server.audio.capture.ServerActivationManager;
-import su.plo.voice.api.server.audio.line.ServerSourceLine;
-import su.plo.voice.api.server.audio.line.ServerSourceLineManager;
+import su.plo.voice.api.server.audio.line.BaseServerSourceLine;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.connection.UdpConnectionManager;
-import su.plo.voice.api.server.event.audio.capture.ServerActivationRegisterEvent;
-import su.plo.voice.api.server.event.audio.capture.ServerActivationUnregisterEvent;
 import su.plo.voice.api.server.event.audio.source.PlayerSpeakEndEvent;
 import su.plo.voice.api.server.event.audio.source.PlayerSpeakEvent;
 import su.plo.voice.api.server.event.audio.source.ServerSourcePacketEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
-import su.plo.voice.api.server.socket.UdpConnection;
 import su.plo.voice.broadcast.BroadcastAddon;
-import su.plo.voice.proto.data.audio.capture.VoiceActivation;
-import su.plo.voice.proto.data.audio.line.VoiceSourceLine;
 import su.plo.voice.proto.packets.tcp.clientbound.SourceAudioEndPacket;
 import su.plo.voice.proto.packets.tcp.clientbound.SourceInfoPacket;
 import su.plo.voice.proto.packets.tcp.serverbound.PlayerAudioEndPacket;
@@ -37,9 +28,8 @@ public final class BroadcastActivation {
 
     private static final String ACTIVATION_NAME = "broadcast";
 
-    private final PermissionsManager permissions;
+    private final PlasmoBaseVoiceServer voiceServer;
 
-    private final PermissionDefault defaultPermission;
     private final SelfActivationInfo selfActivationInfo;
 
     private final BroadcastAddon addon;
@@ -49,25 +39,22 @@ public final class BroadcastActivation {
     @Getter
     private ServerActivation activation;
     @Getter
-    private ServerSourceLine sourceLine;
+    private BaseServerSourceLine sourceLine;
 
-    public BroadcastActivation(@NotNull UdpConnectionManager<? extends VoicePlayer, ? extends UdpConnection> udpConnections,
-                               @NotNull PermissionsManager permissions,
+    public BroadcastActivation(@NotNull PlasmoBaseVoiceServer voiceServer,
                                @NotNull BroadcastAddon addon,
                                @NotNull BroadcastWidePrinter widePrinter) {
-        this.permissions = permissions;
+        this.voiceServer = voiceServer;
 
-        this.defaultPermission = PermissionDefault.OP;
-        this.selfActivationInfo = new SelfActivationInfo(udpConnections);
+        this.selfActivationInfo = new SelfActivationInfo(voiceServer.getUdpConnectionManager());
 
         this.addon = addon;
 
         this.widePrinter = widePrinter;
     }
 
-    public void register(@NotNull ServerActivationManager activations,
-                         @NotNull ServerSourceLineManager sourceLines) {
-        ServerActivation.Builder builder = activations.createBuilder(
+    public void register() {
+        ServerActivation.Builder builder = voiceServer.getActivationManager().createBuilder(
                 addon,
                 ACTIVATION_NAME,
                 "pv.activation.broadcast",
@@ -81,31 +68,14 @@ public final class BroadcastActivation {
                 .setStereoSupported(true)
                 .build();
 
-        this.sourceLine = sourceLines.register(
+        this.sourceLine = voiceServer.getSourceLineManager().register(
                 addon,
                 ACTIVATION_NAME,
                 "pv.activation.broadcast",
                 "plasmovoice:textures/icons/speaker_broadcast.png",
-                addon.getConfig().sourceLineWeight()
+                addon.getConfig().sourceLineWeight(),
+                false
         );
-    }
-
-    @EventSubscribe(priority = EventPriority.HIGHEST)
-    public void onActivationRegister(@NotNull ServerActivationRegisterEvent event) {
-        ServerActivation activation = event.getActivation();
-        if (!activation.getName().equals(ACTIVATION_NAME)) return;
-
-        activation.getPermissions().forEach((permission) ->
-                permissions.register(permission, defaultPermission)
-        );
-    }
-
-    @EventSubscribe(priority = EventPriority.HIGHEST)
-    public void onActivationUnregister(@NotNull ServerActivationUnregisterEvent event) {
-        ServerActivation activation = event.getActivation();
-        if (!activation.getName().equals(ACTIVATION_NAME)) return;
-
-        activation.getPermissions().forEach(permissions::unregister);
     }
 
     @EventSubscribe(priority = EventPriority.HIGHEST)
