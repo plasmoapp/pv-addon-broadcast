@@ -68,14 +68,13 @@ public final class BroadcastActivation {
                 .setStereoSupported(true)
                 .build();
 
-        this.sourceLine = voiceServer.getSourceLineManager().register(
+        this.sourceLine = voiceServer.getSourceLineManager().createBuilder(
                 addon,
                 ACTIVATION_NAME,
                 "pv.activation.broadcast",
                 "plasmovoice:textures/icons/speaker_broadcast.png",
-                addon.getConfig().sourceLineWeight(),
-                false
-        );
+                addon.getConfig().sourceLineWeight()
+        ).build();
     }
 
     @EventSubscribe(priority = EventPriority.HIGHEST)
@@ -172,7 +171,6 @@ public final class BroadcastActivation {
                 .map((broadcastSource) -> {
                     ServerDirectSource source = broadcastSource.getSource();
 
-                    source.setLine(sourceLine);
                     if (isStereo != null) {
                         source.setStereo(isStereo && activation.isStereoSupported());
                     }
