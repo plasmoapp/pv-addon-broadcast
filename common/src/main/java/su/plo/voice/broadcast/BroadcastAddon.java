@@ -69,6 +69,8 @@ public abstract class BroadcastAddon {
             toml.save(BroadcastConfig.class, config, configFile);
 
             voiceServer.getLanguages().register(
+                    "plasmo-voice-addons",
+                    languageFolder + "/groups.toml",
                     (resourcePath) -> getLanguageResource(languageFolder, resourcePath),
                     new File(addonFolder, "languages")
             );

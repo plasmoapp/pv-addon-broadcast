@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("su.plo.crowdin.plugin") version("1.0.0") apply(false)
 }
 
 group = "su.plo"
@@ -15,6 +16,7 @@ tasks {
 
 subprojects {
     apply(plugin = "java")
+    apply(plugin = "su.plo.crowdin.plugin")
 
     dependencies {
         compileOnly("com.google.guava:guava:31.1-jre")
