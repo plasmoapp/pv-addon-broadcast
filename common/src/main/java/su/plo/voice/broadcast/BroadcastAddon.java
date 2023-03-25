@@ -1,16 +1,19 @@
 package su.plo.voice.broadcast;
 
 import com.google.common.collect.Maps;
+import com.google.inject.Inject;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import su.plo.config.provider.ConfigurationProvider;
 import su.plo.config.provider.toml.TomlConfiguration;
 import su.plo.lib.api.chat.MinecraftTextComponent;
+import su.plo.lib.api.server.player.MinecraftServerPlayer;
+import su.plo.voice.api.addon.AddonInitializer;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoBaseVoiceServer;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.event.player.PlayerJoinEvent;
-import su.plo.voice.api.server.event.player.PlayerQuitEvent;
+import su.plo.voice.api.server.event.connection.UdpClientConnectedEvent;
+import su.plo.voice.api.server.event.connection.UdpClientDisconnectedEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
 import su.plo.voice.broadcast.activation.BroadcastActivation;
@@ -26,7 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
-public abstract class BroadcastAddon {
+public abstract class BroadcastAddon implements AddonInitializer {
 
     private static final ConfigurationProvider toml = ConfigurationProvider.getProvider(TomlConfiguration.class);
 
@@ -39,26 +42,29 @@ public abstract class BroadcastAddon {
 
     protected BroadcastActivation broadcastActivation;
 
-    @EventSubscribe
-    public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
-        stateStore.getByPlayerId(event.getPlayerId()).ifPresent((state) -> {
-            getPlayerManager().getPlayerById(event.getPlayerId()).ifPresent((player) -> {
-                BroadcastSource.Result result = initializeBroadcastSource(player, state.type(), state.arguments());
+    @Inject
+    private PlasmoBaseVoiceServer voiceServer;
 
-                if (result != BroadcastSource.Result.SUCCESS) {
-                    stateStore.remove(player.getInstance().getUUID());
-                }
-            });
+    @EventSubscribe
+    public void onPlayerJoin(@NotNull UdpClientConnectedEvent event) {
+        VoicePlayer voicePlayer = event.getConnection().getPlayer();
+        MinecraftServerPlayer player = voicePlayer.getInstance();
+
+        stateStore.getByPlayerId(player.getUUID()).ifPresent((state) -> {
+            BroadcastSource.Result result = initializeBroadcastSource(voicePlayer, state.type(), state.arguments());
+
+            if (result != BroadcastSource.Result.SUCCESS) {
+                stateStore.remove(voicePlayer.getInstance().getUUID());
+            }
         });
     }
 
     @EventSubscribe
-    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        removeBroadcastSource(event.getPlayerId());
+    public void onPlayerQuit(@NotNull UdpClientDisconnectedEvent event) {
+        removeBroadcastSource(event.getConnection().getPlayer().getInstance().getUUID());
     }
 
-    protected synchronized void loadConfig(@NotNull PlasmoBaseVoiceServer voiceServer,
-                                           @NotNull String languageFolder) {
+    protected synchronized void loadConfig(@NotNull String languageFolder) {
         File addonFolder = new File(voiceServer.getConfigFolder(), "addons/broadcast");
         addonFolder.mkdirs();
 

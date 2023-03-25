@@ -1,3 +1,7 @@
+plugins {
+    id("su.plo.crowdin.plugin")
+}
+
 dependencies {
     compileOnly(project(":common"))
 

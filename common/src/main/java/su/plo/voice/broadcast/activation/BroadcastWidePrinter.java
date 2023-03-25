@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
 import su.plo.voice.api.event.EventSubscribe;
-import su.plo.voice.api.server.event.player.PlayerQuitEvent;
+import su.plo.voice.api.server.event.connection.UdpClientDisconnectedEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.broadcast.BroadcastAddon;
 import su.plo.voice.broadcast.config.BroadcastConfig;
@@ -33,8 +33,8 @@ public final class BroadcastWidePrinter {
     }
 
     @EventSubscribe
-    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        lastPrint.remove(event.getPlayerId());
+    public void onPlayerQuit(@NotNull UdpClientDisconnectedEvent event) {
+        lastPrint.remove(event.getConnection().getPlayer().getInstance().getUUID());
     }
 
     private synchronized void sendChat(@NotNull VoicePlayer player, @NotNull MinecraftTextComponent message) {

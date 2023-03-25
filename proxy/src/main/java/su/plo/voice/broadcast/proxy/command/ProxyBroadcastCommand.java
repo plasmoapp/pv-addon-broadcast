@@ -25,7 +25,6 @@ public final class ProxyBroadcastCommand implements MinecraftProxyCommand {
     private static final List<String> SUB_COMMANDS = ImmutableList.of("server", "proxy");
 
     private final ProxyBroadcastAddon addon;
-    private final PlasmoVoiceProxy voiceProxy;
 
     @Override
     public void execute(@NotNull MinecraftCommandSource source, @NotNull String[] arguments) {
@@ -40,7 +39,7 @@ public final class ProxyBroadcastCommand implements MinecraftProxyCommand {
         }
 
         MinecraftServerPlayer serverPlayer = (MinecraftServerPlayer) source;
-        VoiceProxyPlayer player = voiceProxy.getPlayerManager().getPlayerById(serverPlayer.getUUID())
+        VoiceProxyPlayer player = addon.getVoiceProxy().getPlayerManager().getPlayerById(serverPlayer.getUUID())
                 .orElseThrow(() -> new IllegalStateException("Player not found"));
 
         String type = arguments[0];
@@ -81,7 +80,8 @@ public final class ProxyBroadcastCommand implements MinecraftProxyCommand {
         if (subCommand.equals("server") && hasPermission(source, "server")) {
             List<String> argumentsList = ImmutableList.copyOf(arguments);
 
-            return voiceProxy.getMinecraftServer()
+            return addon.getVoiceProxy()
+                    .getMinecraftServer()
                     .getServers()
                     .stream()
                     .map(MinecraftProxyServerInfo::getName)

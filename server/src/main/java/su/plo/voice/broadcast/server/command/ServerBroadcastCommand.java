@@ -9,7 +9,6 @@ import su.plo.lib.api.server.command.MinecraftCommand;
 import su.plo.lib.api.server.command.MinecraftCommandSource;
 import su.plo.lib.api.server.player.MinecraftServerPlayer;
 import su.plo.lib.api.server.world.MinecraftServerWorld;
-import su.plo.voice.api.server.PlasmoVoiceServer;
 import su.plo.voice.api.server.player.VoiceServerPlayer;
 import su.plo.voice.broadcast.server.ServerBroadcastAddon;
 import su.plo.voice.broadcast.source.BroadcastSource;
@@ -23,7 +22,6 @@ public class ServerBroadcastCommand implements MinecraftCommand {
 
     private static final List<String> SUB_COMMANDS = ImmutableList.of("range", "server", "world");
 
-    private final PlasmoVoiceServer voiceServer;
     private final ServerBroadcastAddon addon;
 
     @Override
@@ -39,7 +37,7 @@ public class ServerBroadcastCommand implements MinecraftCommand {
         }
 
         MinecraftServerPlayer serverPlayer = (MinecraftServerPlayer) source;
-        VoiceServerPlayer player = voiceServer.getPlayerManager().getPlayerById(serverPlayer.getUUID())
+        VoiceServerPlayer player = addon.getVoiceServer().getPlayerManager().getPlayerById(serverPlayer.getUUID())
                 .orElseThrow(() -> new IllegalStateException("Player not found"));
 
         String type = arguments[0];
@@ -80,7 +78,8 @@ public class ServerBroadcastCommand implements MinecraftCommand {
         if (subCommand.equals("world") && hasPermission(source, "world")) {
             List<String> argumentsList = ImmutableList.copyOf(arguments);
 
-            return voiceServer.getMinecraftServer()
+            return addon.getVoiceServer()
+                    .getMinecraftServer()
                     .getWorlds()
                     .stream()
                     .map(MinecraftServerWorld::getKey)

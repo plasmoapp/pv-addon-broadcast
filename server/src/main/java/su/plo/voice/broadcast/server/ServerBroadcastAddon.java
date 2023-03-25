@@ -2,18 +2,19 @@ package su.plo.voice.broadcast.server;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
+import su.plo.lib.api.server.event.command.ServerCommandsRegisterEvent;
 import su.plo.lib.api.server.permission.PermissionDefault;
 import su.plo.lib.api.server.permission.PermissionsManager;
 import su.plo.lib.api.server.world.MinecraftServerWorld;
-import su.plo.voice.api.addon.AddonScope;
+import su.plo.voice.api.addon.AddonLoaderScope;
 import su.plo.voice.api.addon.annotation.Addon;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoVoiceServer;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.event.command.CommandsRegisterEvent;
-import su.plo.voice.api.server.event.config.VoiceServerConfigLoadedEvent;
+import su.plo.voice.api.server.event.config.VoiceServerConfigReloadedEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
 import su.plo.voice.api.server.player.VoiceServerPlayer;
@@ -29,33 +30,38 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Addon(id = "broadcast", scope = AddonScope.SERVER, version = "1.0.0", authors = {"Apehum"})
+@Addon(id = "broadcast", scope = AddonLoaderScope.SERVER, version = "1.0.0", authors = {"Apehum"})
 public final class ServerBroadcastAddon extends BroadcastAddon {
 
     @Inject
+    @Getter
     private PlasmoVoiceServer voiceServer;
 
-    @EventSubscribe
-    public void onConfigLoaded(@NotNull VoiceServerConfigLoadedEvent event) {
-        PlasmoVoiceServer voiceServer = event.getServer();
+    public ServerBroadcastAddon() {
+        ServerCommandsRegisterEvent.INSTANCE.registerListener((commandManager, minecraftServer) -> {
+            PermissionsManager permissions = minecraftServer.getPermissionsManager();
 
-        loadConfig(voiceServer, "server");
+            permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
+            permissions.register("pv.addon.broadcast.range", PermissionDefault.OP);
+            permissions.register("pv.addon.broadcast.server", PermissionDefault.OP);
+            permissions.register("pv.addon.broadcast.world", PermissionDefault.OP);
+
+            commandManager.register(
+                    "vbroadcast",
+                    new ServerBroadcastCommand(this),
+                    "vbc"
+            );
+        });
+    }
+
+    @Override
+    public void onAddonInitialize() {
+        loadConfig("server");
     }
 
     @EventSubscribe
-    public void onCommandsRegister(@NotNull CommandsRegisterEvent event) {
-        PermissionsManager permissions = event.getVoiceServer().getMinecraftServer().getPermissionsManager();
-
-        permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
-        permissions.register("pv.addon.broadcast.range", PermissionDefault.OP);
-        permissions.register("pv.addon.broadcast.server", PermissionDefault.OP);
-        permissions.register("pv.addon.broadcast.world", PermissionDefault.OP);
-
-        event.getCommandManager().register(
-                "vbroadcast",
-                new ServerBroadcastCommand(event.getVoiceServer(), this),
-                "vbc"
-        );
+    public void onConfigLoaded(@NotNull VoiceServerConfigReloadedEvent event) {
+        loadConfig("server");
     }
 
     @Override
