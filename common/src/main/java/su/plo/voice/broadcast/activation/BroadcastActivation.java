@@ -3,6 +3,7 @@ package su.plo.voice.broadcast.activation;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import su.plo.lib.api.server.permission.PermissionDefault;
 import su.plo.voice.api.event.EventPriority;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoBaseVoiceServer;
@@ -10,8 +11,6 @@ import su.plo.voice.api.server.audio.capture.SelfActivationInfo;
 import su.plo.voice.api.server.audio.capture.ServerActivation;
 import su.plo.voice.api.server.audio.line.BaseServerSourceLine;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
-import su.plo.voice.api.server.event.audio.source.PlayerSpeakEndEvent;
-import su.plo.voice.api.server.event.audio.source.PlayerSpeakEvent;
 import su.plo.voice.api.server.event.audio.source.ServerSourcePacketEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.broadcast.BroadcastAddon;
@@ -66,7 +65,10 @@ public final class BroadcastActivation {
                 .setProximity(false)
                 .setTransitive(false)
                 .setStereoSupported(true)
+                .setPermissionDefault(PermissionDefault.OP)
                 .build();
+        activation.onPlayerActivation(this::onActivation);
+        activation.onPlayerActivationEnd(this::onActivationEnd);
 
         this.sourceLine = voiceServer.getSourceLineManager().createBuilder(
                 addon,
@@ -106,35 +108,27 @@ public final class BroadcastActivation {
         }
     }
 
-    @EventSubscribe(priority = EventPriority.HIGHEST)
-    public void onPlayerSpeak(@NotNull PlayerSpeakEvent event) {
-        if (activation == null) return;
-
-        VoicePlayer player = event.getPlayer();
-        PlayerAudioPacket packet = event.getPacket();
-
-        if (!activation.checkPermissions(player)) return;
-
-        getDirectSource(player, packet.getActivationId(), packet.isStereo())
-                .ifPresent((source) -> {
+    private ServerActivation.Result onActivation(@NotNull VoicePlayer player, @NotNull PlayerAudioPacket packet) {
+        return getDirectSource(player, packet.getActivationId(), packet.isStereo())
+                .map((source) -> {
                     if (sendAudioPacket(player, source, packet)) {
                         widePrinter.sendMessage(player);
-                        event.setCancelled(true);
+                        return ServerActivation.Result.HANDLED;
                     }
-                });
+
+                    return ServerActivation.Result.IGNORED;
+                })
+                .orElse(ServerActivation.Result.IGNORED);
     }
 
-    @EventSubscribe(priority = EventPriority.HIGHEST)
-    public void onPlayerSpeakEnd(@NotNull PlayerSpeakEndEvent event) {
-        VoicePlayer player = event.getPlayer();
-        PlayerAudioEndPacket packet = event.getPacket();
-
-        if (!activation.checkPermissions(player)) return;
-
-        getDirectSource(player, packet.getActivationId(), null)
-                .ifPresent((source) -> {
-                    if (sendAudioEndPacket(source, packet)) event.setCancelled(true);
-                });
+    public ServerActivation.Result onActivationEnd(@NotNull VoicePlayer player, @NotNull PlayerAudioEndPacket packet) {
+        return getDirectSource(player, packet.getActivationId(), null)
+                .map((source) -> {
+                    if (sendAudioEndPacket(source, packet))
+                        return ServerActivation.Result.HANDLED;
+                    return ServerActivation.Result.IGNORED;
+                })
+                .orElse(ServerActivation.Result.IGNORED);
     }
 
     private boolean sendAudioPacket(@NotNull VoicePlayer player,

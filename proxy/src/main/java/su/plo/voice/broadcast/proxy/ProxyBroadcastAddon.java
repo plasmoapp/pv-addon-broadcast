@@ -1,19 +1,20 @@
 package su.plo.voice.broadcast.proxy;
 
+import com.google.inject.Inject;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
 import su.plo.lib.api.proxy.event.command.MinecraftCommandExecuteEvent;
 import su.plo.lib.api.proxy.player.MinecraftProxyPlayer;
 import su.plo.lib.api.proxy.server.MinecraftProxyServerInfo;
+import su.plo.lib.api.server.event.command.ProxyCommandsRegisterEvent;
 import su.plo.lib.api.server.permission.PermissionDefault;
 import su.plo.lib.api.server.permission.PermissionsManager;
-import su.plo.voice.api.addon.AddonScope;
+import su.plo.voice.api.addon.AddonLoaderScope;
 import su.plo.voice.api.addon.annotation.Addon;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.proxy.PlasmoVoiceProxy;
-import su.plo.voice.api.proxy.event.VoiceProxyInitializeEvent;
-import su.plo.voice.api.proxy.event.command.CommandsRegisterEvent;
-import su.plo.voice.api.proxy.event.config.VoiceProxyConfigLoadedEvent;
+import su.plo.voice.api.proxy.event.config.VoiceProxyConfigReloadedEvent;
 import su.plo.voice.api.proxy.player.VoiceProxyPlayer;
 import su.plo.voice.api.server.audio.source.ServerDirectSource;
 import su.plo.voice.api.server.player.VoicePlayer;
@@ -29,10 +30,28 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Addon(id = "broadcast", scope = AddonScope.PROXY, version = "1.0.0", authors = {"Apehum"})
+@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.PROXY, version = "1.0.0", authors = {"Apehum"})
 public final class ProxyBroadcastAddon extends BroadcastAddon {
 
+    @Inject
+    @Getter
     private PlasmoVoiceProxy voiceProxy;
+
+    public ProxyBroadcastAddon() {
+        ProxyCommandsRegisterEvent.INSTANCE.registerListener((commandManager, minecraftProxy) -> {
+            PermissionsManager permissions = minecraftProxy.getPermissionsManager();
+
+            permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
+            permissions.register("pv.addon.broadcast.proxy", PermissionDefault.OP);
+            permissions.register("pv.addon.broadcast.server", PermissionDefault.OP);
+
+            commandManager.register(
+                    "vbroadcastproxy",
+                    new ProxyBroadcastCommand(this),
+                    "vbcp"
+            );
+        });
+    }
 
     @EventSubscribe
     public void onCommandExecute(@NotNull MinecraftCommandExecuteEvent event) {
@@ -47,31 +66,14 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
         }
     }
 
-    @EventSubscribe
-    public void onProxyInitialize(@NotNull VoiceProxyInitializeEvent event) {
-        this.voiceProxy = event.getProxy();
+    @Override
+    public void onAddonInitialize() {
+        loadConfig("proxy");
     }
 
     @EventSubscribe
-    public void onConfigLoaded(@NotNull VoiceProxyConfigLoadedEvent event) {
-        PlasmoVoiceProxy voiceProxy = event.getProxy();
-
-        loadConfig(voiceProxy, "proxy");
-    }
-
-    @EventSubscribe
-    public void onCommandsRegister(@NotNull CommandsRegisterEvent event) {
-        PermissionsManager permissions = event.getVoiceProxy().getMinecraftServer().getPermissionsManager();
-
-        permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
-        permissions.register("pv.addon.broadcast.proxy", PermissionDefault.OP);
-        permissions.register("pv.addon.broadcast.server", PermissionDefault.OP);
-
-        event.getCommandManager().register(
-                "vbroadcastproxy",
-                new ProxyBroadcastCommand(this, event.getVoiceProxy()),
-                "vbcp"
-        );
+    public void onConfigLoaded(@NotNull VoiceProxyConfigReloadedEvent event) {
+        loadConfig("proxy");
     }
 
     @Override
@@ -123,6 +125,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                         new GlobalBroadcastSource(directSource, player)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
@@ -148,6 +151,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                         new ServerBroadcastSource(directSource, player, servers)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
@@ -161,5 +165,10 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
     @Override
     public VoicePlayerManager<?> getPlayerManager() {
         return voiceProxy.getPlayerManager();
+    }
+
+    @Override
+    protected String getDefaultSourceType() {
+        return "proxy";
     }
 }
