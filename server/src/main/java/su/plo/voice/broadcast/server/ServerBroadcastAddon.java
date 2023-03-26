@@ -182,4 +182,9 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
     public VoicePlayerManager<?> getPlayerManager() {
         return voiceServer.getPlayerManager();
     }
+
+    @Override
+    protected String getDefaultSourceType() {
+        return "server";
+    }
 }

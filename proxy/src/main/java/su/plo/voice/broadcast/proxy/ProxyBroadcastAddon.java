@@ -164,4 +164,9 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
     public VoicePlayerManager<?> getPlayerManager() {
         return voiceProxy.getPlayerManager();
     }
+
+    @Override
+    protected String getDefaultSourceType() {
+        return "proxy";
+    }
 }

@@ -120,7 +120,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
 
         if (!initializeDefault) return Optional.empty();
 
-        if (initializeBroadcastSource(player, "server", Collections.emptyList()) != BroadcastSource.Result.SUCCESS) {
+        if (initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList()) != BroadcastSource.Result.SUCCESS) {
             throw new IllegalStateException("Failed to initialize default broadcast source");
         }
 
@@ -152,4 +152,6 @@ public abstract class BroadcastAddon implements AddonInitializer {
                                                                      @NotNull List<String> arguments);
 
     public abstract VoicePlayerManager<?> getPlayerManager();
+
+    protected abstract String getDefaultSourceType();
 }
