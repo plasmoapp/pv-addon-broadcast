@@ -41,6 +41,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
     protected BroadcastStateStore stateStore;
 
     protected BroadcastActivation broadcastActivation;
+    protected BroadcastWidePrinter broadcastWidePrinter;
 
     @Inject
     private PlasmoBaseVoiceServer voiceServer;
@@ -95,7 +96,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
         }
 
         if (broadcastActivation == null) {
-            BroadcastWidePrinter broadcastWidePrinter = new BroadcastWidePrinter(this);
+            this.broadcastWidePrinter = new BroadcastWidePrinter(this);
 
             this.broadcastActivation = new BroadcastActivation(
                     voiceServer,

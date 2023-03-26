@@ -128,6 +128,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                         new RangeBroadcastSource(directSource, player, range)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
@@ -142,6 +143,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                         new GlobalBroadcastSource(directSource, player)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
@@ -169,6 +171,7 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                         new WorldBroadcastSource(directSource, player, worlds)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }

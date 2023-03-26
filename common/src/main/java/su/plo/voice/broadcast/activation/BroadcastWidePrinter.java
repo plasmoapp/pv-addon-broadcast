@@ -32,6 +32,10 @@ public final class BroadcastWidePrinter {
         });
     }
 
+    public void reset(@NotNull VoicePlayer player) {
+        lastPrint.remove(player.getInstance().getUUID());
+    }
+
     @EventSubscribe
     public void onPlayerQuit(@NotNull UdpClientDisconnectedEvent event) {
         lastPrint.remove(event.getConnection().getPlayer().getInstance().getUUID());

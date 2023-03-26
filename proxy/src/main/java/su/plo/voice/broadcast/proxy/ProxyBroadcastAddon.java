@@ -125,6 +125,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                         new GlobalBroadcastSource(directSource, player)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
@@ -150,6 +151,7 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                         new ServerBroadcastSource(directSource, player, servers)
                 );
                 stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                broadcastWidePrinter.reset(player);
 
                 return BroadcastSource.Result.SUCCESS;
             }
