@@ -4,10 +4,10 @@ import com.google.inject.Inject;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
-import su.plo.lib.api.proxy.event.command.MinecraftCommandExecuteEvent;
+import su.plo.lib.api.proxy.event.command.ProxyCommandExecuteEvent;
 import su.plo.lib.api.proxy.player.MinecraftProxyPlayer;
 import su.plo.lib.api.proxy.server.MinecraftProxyServerInfo;
-import su.plo.lib.api.server.event.command.ProxyCommandsRegisterEvent;
+import su.plo.lib.api.proxy.event.command.ProxyCommandsRegisterEvent;
 import su.plo.lib.api.server.permission.PermissionDefault;
 import su.plo.lib.api.server.permission.PermissionsManager;
 import su.plo.voice.api.addon.AddonLoaderScope;
@@ -51,19 +51,18 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                     "vbcp"
             );
         });
-    }
 
-    @EventSubscribe
-    public void onCommandExecute(@NotNull MinecraftCommandExecuteEvent event) {
-        if (!(event.getCommandSource() instanceof MinecraftProxyPlayer)) return;
+        ProxyCommandExecuteEvent.INSTANCE.registerListener((source, command) -> {
+            if (!(source instanceof MinecraftProxyPlayer)) return;
 
-        MinecraftProxyPlayer player = (MinecraftProxyPlayer) event.getCommandSource();
+            MinecraftProxyPlayer player = (MinecraftProxyPlayer) source;
 
-        // reset proxy source
-        if (event.getCommand().startsWith("vbroadcast ") || event.getCommand().startsWith("vbc ")) {
-            removeBroadcastSource(player.getUUID());
-            stateStore.remove(player.getUUID());
-        }
+            // reset proxy source
+            if (command.startsWith("vbroadcast ") || command.startsWith("vbc ")) {
+                removeBroadcastSource(player.getUUID());
+                stateStore.remove(player.getUUID());
+            }
+        });
     }
 
     @Override
