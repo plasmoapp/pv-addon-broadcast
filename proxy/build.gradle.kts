@@ -14,9 +14,3 @@ plasmoCrowdin {
     resourceDir = "broadcast/proxy/languages"
     createList = true
 }
-
-tasks {
-    processResources {
-        dependsOn(plasmoCrowdinDownload)
-    }
-}
