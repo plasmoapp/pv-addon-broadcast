@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import su.plo.config.provider.ConfigurationProvider;
 import su.plo.config.provider.toml.TomlConfiguration;
 import su.plo.lib.api.chat.MinecraftTextComponent;
@@ -119,7 +120,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
         BroadcastSource<?> broadcastSource = sourceByPlayerId.get(player.getInstance().getUUID());
         if (broadcastSource != null) return Optional.of(broadcastSource);
 
-        if (!initializeDefault) return Optional.empty();
+        if (!initializeDefault || getDefaultSourceType() == null) return Optional.empty();
 
         if (initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList()) != BroadcastSource.Result.SUCCESS) {
             throw new IllegalStateException("Failed to initialize default broadcast source");
@@ -154,5 +155,5 @@ public abstract class BroadcastAddon implements AddonInitializer {
 
     public abstract VoicePlayerManager<?> getPlayerManager();
 
-    protected abstract String getDefaultSourceType();
+    protected abstract @Nullable String getDefaultSourceType();
 }

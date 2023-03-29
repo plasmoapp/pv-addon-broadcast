@@ -5,9 +5,9 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import su.plo.lib.api.chat.MinecraftTextComponent;
 import su.plo.lib.api.proxy.event.command.ProxyCommandExecuteEvent;
+import su.plo.lib.api.proxy.event.command.ProxyCommandsRegisterEvent;
 import su.plo.lib.api.proxy.player.MinecraftProxyPlayer;
 import su.plo.lib.api.proxy.server.MinecraftProxyServerInfo;
-import su.plo.lib.api.proxy.event.command.ProxyCommandsRegisterEvent;
 import su.plo.lib.api.server.permission.PermissionDefault;
 import su.plo.lib.api.server.permission.PermissionsManager;
 import su.plo.voice.api.addon.AddonLoaderScope;
@@ -168,6 +168,6 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
 
     @Override
     protected String getDefaultSourceType() {
-        return "proxy";
+        return null;
     }
 }
