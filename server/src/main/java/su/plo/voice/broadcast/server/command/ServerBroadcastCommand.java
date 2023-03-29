@@ -107,7 +107,7 @@ public class ServerBroadcastCommand implements MinecraftCommand {
         switch (type) {
             case "range":
                 return result == BroadcastSource.Result.SUCCESS
-                        ? MinecraftTextComponent.translatable("pv.addon.broadcast.command.range_set")
+                        ? MinecraftTextComponent.translatable("pv.addon.broadcast.command.range_set", Integer.parseInt(arguments.get(0)))
                         : MinecraftTextComponent.translatable("pv.addon.broadcast.command.range_usage");
 
             case "server": {
