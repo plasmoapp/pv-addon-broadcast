@@ -4,6 +4,9 @@ plugins {
 }
 
 dependencies {
+    compileOnly(project(":proxy"))
+    compileOnly(project(":server"))
+
     compileOnly("su.plo.voice.api:server:2.0.0+ALPHA")
     compileOnly("su.plo.voice.api:proxy:2.0.0+ALPHA")
 
