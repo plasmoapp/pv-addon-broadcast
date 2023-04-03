@@ -1,3 +1,5 @@
+val plasmoVoiceVersion: String by rootProject
+
 dependencies {
-    compileOnly("su.plo.voice.api:server-common:2.0.0+ALPHA")
+    compileOnly("su.plo.voice.api:server-common:$plasmoVoiceVersion")
 }
