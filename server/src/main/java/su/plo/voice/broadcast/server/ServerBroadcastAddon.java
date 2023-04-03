@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Addon(id = "broadcast", scope = AddonLoaderScope.SERVER, version = "1.0.0", authors = {"Apehum"})
+@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.SERVER, version = "1.0.0", authors = {"Apehum"})
 public final class ServerBroadcastAddon extends BroadcastAddon {
 
     @Inject
