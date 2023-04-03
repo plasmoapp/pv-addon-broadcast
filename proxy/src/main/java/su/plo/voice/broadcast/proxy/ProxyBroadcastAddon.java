@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.PROXY, version = "1.0.0", authors = {"Apehum"})
+@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.PROXY, version = "1.0.1", authors = {"Apehum"})
 public final class ProxyBroadcastAddon extends BroadcastAddon {
 
     @Inject
