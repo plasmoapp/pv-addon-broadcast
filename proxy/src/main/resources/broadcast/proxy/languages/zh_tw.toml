@@ -1,0 +1,14 @@
+[server.pv.addon.broadcast]
+broadcasting_wide = "向 %s 範圍廣播"
+broadcasting_specific = "向 %s 廣播"
+
+[server.pv.addon.broadcast.command]
+usage = "用法：/vbroadcastproxy <server|proxy> <伺服器名稱>"
+
+server_usage = "用法：/vbroadcastproxy server <伺服器名稱>"
+server_set = "設置廣播為向 %s 廣播的伺服器模式"
+
+proxy_set = "設置廣播為代理模式"
+
+[client.pv.activation]
+broadcast = "廣播"
