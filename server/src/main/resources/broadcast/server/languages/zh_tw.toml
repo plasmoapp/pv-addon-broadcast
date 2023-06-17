@@ -6,12 +6,12 @@ broadcasting_specific = "向 %s 廣播"
 usage = "用法：/vbroadcast <range|server|world> <範圍|世界名稱>"
 
 range_usage = "用法：/vbroadcast range <大於 0 的數字>"
-range_set = "設置廣播範圍為 %d"
+range_set = "設定廣播範圍為 %d"
 
 world_usage = "用法：/vbroadcast world <世界名稱>"
-world_set = "設置廣播為向 %s 廣播的世界模式"
+world_set = "設定廣播為向 %s 廣播的世界模式"
 
-server_set = "設置廣播為伺服器模式"
+server_set = "設定廣播為伺服器模式"
 
 [client.pv.activation]
 broadcast = "廣播"
