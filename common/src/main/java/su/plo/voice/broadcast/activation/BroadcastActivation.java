@@ -3,14 +3,14 @@ package su.plo.voice.broadcast.activation;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import su.plo.lib.api.server.permission.PermissionDefault;
+import su.plo.slib.api.permission.PermissionDefault;
 import su.plo.voice.api.event.EventPriority;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoBaseVoiceServer;
 import su.plo.voice.api.server.audio.capture.SelfActivationInfo;
 import su.plo.voice.api.server.audio.capture.ServerActivation;
 import su.plo.voice.api.server.audio.line.BaseServerSourceLine;
-import su.plo.voice.api.server.audio.source.ServerDirectSource;
+import su.plo.voice.api.server.audio.source.ServerBroadcastSource;
 import su.plo.voice.api.server.event.audio.source.ServerSourcePacketEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.broadcast.BroadcastAddon;
@@ -40,9 +40,11 @@ public final class BroadcastActivation {
     @Getter
     private BaseServerSourceLine sourceLine;
 
-    public BroadcastActivation(@NotNull PlasmoBaseVoiceServer voiceServer,
-                               @NotNull BroadcastAddon addon,
-                               @NotNull BroadcastWidePrinter widePrinter) {
+    public BroadcastActivation(
+            @NotNull PlasmoBaseVoiceServer voiceServer,
+            @NotNull BroadcastAddon addon,
+            @NotNull BroadcastWidePrinter widePrinter
+    ) {
         this.voiceServer = voiceServer;
 
         this.selfActivationInfo = new SelfActivationInfo(voiceServer.getUdpConnectionManager());
@@ -66,6 +68,7 @@ public final class BroadcastActivation {
                 .setTransitive(false)
                 .setStereoSupported(true)
                 .setPermissionDefault(PermissionDefault.OP)
+                .addPermission("pv.addon.broadcast.*")
                 .build();
         activation.onPlayerActivation(this::onActivation);
         activation.onPlayerActivationEnd(this::onActivationEnd);
@@ -81,35 +84,35 @@ public final class BroadcastActivation {
 
     @EventSubscribe(priority = EventPriority.HIGHEST)
     public void onSourceSendPacket(@NotNull ServerSourcePacketEvent event) {
-        if (!(event.getSource() instanceof ServerDirectSource)) return;
+        if (!(event.getSource() instanceof ServerBroadcastSource)) return;
 
-        ServerDirectSource source = (ServerDirectSource) event.getSource();
-        if (!source.getSender().isPresent()) return;
+        ServerBroadcastSource source = (ServerBroadcastSource) event.getSource();
+        if (source.getSender() == null) return;
 
-        VoicePlayer player = source.getSender().get();
-        if (addon.getBroadcastSource(player, false)
-                .map((broadcastSource) -> source.equals(broadcastSource.getSource()))
+        VoicePlayer sender = source.getSender();
+        if (addon.getBroadcastSource(sender, false)
+                .map(source::equals)
                 .orElse(false)) return;
 
         if (!selfActivationInfo.getLastPlayerActivationIds()
-                .containsKey(player.getInstance().getUUID())
+                .containsKey(sender.getInstance().getUuid())
         ) {
             return;
         }
 
         if (event.getPacket() instanceof SourceInfoPacket) {
             selfActivationInfo.updateSelfSourceInfo(
-                    player,
+                    sender,
                     source,
                     ((SourceInfoPacket) event.getPacket()).getSourceInfo()
             );
         } else if (event.getPacket() instanceof SourceAudioEndPacket) {
-            player.sendPacket(event.getPacket());
+            sender.sendPacket(event.getPacket());
         }
     }
 
     private ServerActivation.Result onActivation(@NotNull VoicePlayer player, @NotNull PlayerAudioPacket packet) {
-        return getDirectSource(player, packet.getActivationId(), packet.isStereo())
+        return getBroadcastSource(player, packet.getActivationId(), packet.isStereo())
                 .map((source) -> {
                     if (sendAudioPacket(player, source, packet)) {
                         widePrinter.sendMessage(player);
@@ -122,7 +125,7 @@ public final class BroadcastActivation {
     }
 
     public ServerActivation.Result onActivationEnd(@NotNull VoicePlayer player, @NotNull PlayerAudioEndPacket packet) {
-        return getDirectSource(player, packet.getActivationId(), null)
+        return getBroadcastSource(player, packet.getActivationId(), null)
                 .map((source) -> {
                     if (sendAudioEndPacket(source, packet))
                         return ServerActivation.Result.HANDLED;
@@ -131,9 +134,11 @@ public final class BroadcastActivation {
                 .orElse(ServerActivation.Result.IGNORED);
     }
 
-    private boolean sendAudioPacket(@NotNull VoicePlayer player,
-                                    @NotNull ServerDirectSource source,
-                                    @NotNull PlayerAudioPacket packet) {
+    private boolean sendAudioPacket(
+            @NotNull VoicePlayer player,
+            @NotNull ServerBroadcastSource source,
+            @NotNull PlayerAudioPacket packet
+    ) {
         SourceAudioPacket sourcePacket = new SourceAudioPacket(
                 packet.getSequenceNumber(),
                 (byte) source.getState(),
@@ -150,21 +155,19 @@ public final class BroadcastActivation {
         return false;
     }
 
-    private boolean sendAudioEndPacket(@NotNull ServerDirectSource source,
+    private boolean sendAudioEndPacket(@NotNull ServerBroadcastSource source,
                                        @NotNull PlayerAudioEndPacket packet) {
         SourceAudioEndPacket sourcePacket = new SourceAudioEndPacket(source.getId(), packet.getSequenceNumber());
         return source.sendPacket(sourcePacket);
     }
 
-    private Optional<ServerDirectSource> getDirectSource(@NotNull VoicePlayer player,
-                                                         @NotNull UUID activationId,
-                                                         @Nullable Boolean isStereo) {
+    private Optional<ServerBroadcastSource> getBroadcastSource(@NotNull VoicePlayer player,
+                                                               @NotNull UUID activationId,
+                                                               @Nullable Boolean isStereo) {
         if (!activationId.equals(activation.getId())) return Optional.empty();
 
         return addon.getBroadcastSource(player, true)
-                .map((broadcastSource) -> {
-                    ServerDirectSource source = broadcastSource.getSource();
-
+                .map((source) -> {
                     if (isStereo != null) {
                         source.setStereo(isStereo && activation.isStereoSupported());
                     }

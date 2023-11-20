@@ -1,29 +1,28 @@
 package su.plo.voice.broadcast;
 
 import com.google.common.collect.Maps;
-import com.google.inject.Inject;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import su.plo.config.provider.ConfigurationProvider;
 import su.plo.config.provider.toml.TomlConfiguration;
-import su.plo.lib.api.chat.MinecraftTextComponent;
-import su.plo.lib.api.server.player.MinecraftServerPlayer;
+import su.plo.slib.api.chat.component.McTextComponent;
+import su.plo.slib.api.entity.player.McPlayer;
 import su.plo.voice.api.addon.AddonInitializer;
+import su.plo.voice.api.addon.InjectPlasmoVoice;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoBaseVoiceServer;
-import su.plo.voice.api.server.audio.source.ServerDirectSource;
+import su.plo.voice.api.server.audio.source.ServerBroadcastSource;
 import su.plo.voice.api.server.event.connection.UdpClientConnectedEvent;
 import su.plo.voice.api.server.event.connection.UdpClientDisconnectedEvent;
+import su.plo.voice.api.server.language.ServerLanguages;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
 import su.plo.voice.broadcast.activation.BroadcastActivation;
 import su.plo.voice.broadcast.activation.BroadcastWidePrinter;
 import su.plo.voice.broadcast.config.BroadcastConfig;
-import su.plo.voice.broadcast.source.BroadcastSource;
 import su.plo.voice.broadcast.state.BroadcastStateStore;
 import su.plo.voice.broadcast.state.JsonBroadcastStateStore;
-import su.plo.voice.proto.data.audio.codec.opus.OpusDecoderInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +33,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
 
     private static final ConfigurationProvider toml = ConfigurationProvider.getProvider(TomlConfiguration.class);
 
-    protected final Map<UUID, BroadcastSource<?>> sourceByPlayerId = Maps.newConcurrentMap();
+    protected final Map<UUID, ServerBroadcastSource> sourceByPlayerId = Maps.newConcurrentMap();
 
     @Getter
     protected BroadcastConfig config;
@@ -44,26 +43,26 @@ public abstract class BroadcastAddon implements AddonInitializer {
     protected BroadcastActivation broadcastActivation;
     protected BroadcastWidePrinter broadcastWidePrinter;
 
-    @Inject
+    @InjectPlasmoVoice
     private PlasmoBaseVoiceServer voiceServer;
 
     @EventSubscribe
     public void onPlayerJoin(@NotNull UdpClientConnectedEvent event) {
         VoicePlayer voicePlayer = event.getConnection().getPlayer();
-        MinecraftServerPlayer player = voicePlayer.getInstance();
+        McPlayer player = voicePlayer.getInstance();
 
-        stateStore.getByPlayerId(player.getUUID()).ifPresent((state) -> {
-            BroadcastSource.Result result = initializeBroadcastSource(voicePlayer, state.type(), state.arguments());
+        stateStore.getByPlayerId(player.getUuid()).ifPresent((state) -> {
+            SourceResult result = initializeBroadcastSource(voicePlayer, state.type(), state.arguments());
 
-            if (result != BroadcastSource.Result.SUCCESS) {
-                stateStore.remove(voicePlayer.getInstance().getUUID());
+            if (result != SourceResult.SUCCESS) {
+                stateStore.remove(voicePlayer.getInstance().getUuid());
             }
         });
     }
 
     @EventSubscribe
     public void onPlayerQuit(@NotNull UdpClientDisconnectedEvent event) {
-        removeBroadcastSource(event.getConnection().getPlayer().getInstance().getUUID());
+        removeBroadcastSource(event.getConnection().getPlayer().getInstance().getUuid());
     }
 
     protected synchronized void loadConfig(@NotNull String languageFolder) {
@@ -76,7 +75,8 @@ public abstract class BroadcastAddon implements AddonInitializer {
             this.config = toml.load(BroadcastConfig.class, configFile, false);
             toml.save(BroadcastConfig.class, config, configFile);
 
-            voiceServer.getLanguages().register(
+            ServerLanguages languages = voiceServer.getLanguages();
+            languages.register(
                     "plasmo-voice-addons",
                     languageFolder + "/groups.toml",
                     (resourcePath) -> getLanguageResource(languageFolder, resourcePath),
@@ -112,34 +112,33 @@ public abstract class BroadcastAddon implements AddonInitializer {
     }
 
     public void removeBroadcastSource(@NotNull UUID playerId) {
-        BroadcastSource<?> source = sourceByPlayerId.remove(playerId);
-        if (source != null) source.close();
+        ServerBroadcastSource source = sourceByPlayerId.remove(playerId);
+        if (source != null) source.remove();
     }
 
-    public Optional<BroadcastSource<?>> getBroadcastSource(@NotNull VoicePlayer player, boolean initializeDefault) {
-        BroadcastSource<?> broadcastSource = sourceByPlayerId.get(player.getInstance().getUUID());
+    public Optional<ServerBroadcastSource> getBroadcastSource(@NotNull VoicePlayer player, boolean initializeDefault) {
+        ServerBroadcastSource broadcastSource = sourceByPlayerId.get(player.getInstance().getUuid());
         if (broadcastSource != null) return Optional.of(broadcastSource);
 
         if (!initializeDefault || getDefaultSourceType() == null) return Optional.empty();
 
-        if (initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList()) != BroadcastSource.Result.SUCCESS) {
+        if (initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList()) != SourceResult.SUCCESS) {
             throw new IllegalStateException("Failed to initialize default broadcast source");
         }
 
         return getBroadcastSource(player, false);
     }
 
-    public ServerDirectSource getDirectSource(@NotNull VoicePlayer player) {
-        return Optional.ofNullable(sourceByPlayerId.get(player.getInstance().getUUID()))
-                .map(BroadcastSource::getSource)
-                .orElseGet(this::createDirectSource);
+    public ServerBroadcastSource getBroadcastSource(@NotNull VoicePlayer player) {
+        return Optional.ofNullable(sourceByPlayerId.get(player.getInstance().getUuid()))
+                .orElseGet(this::createBroadcastSource);
     }
 
-    private ServerDirectSource createDirectSource() {
+    private ServerBroadcastSource createBroadcastSource() {
         if (broadcastActivation.getSourceLine() == null)
             throw new IllegalStateException("Broadcast source line is not initialized");
 
-        return broadcastActivation.getSourceLine().createDirectSource(false, new OpusDecoderInfo());
+        return broadcastActivation.getSourceLine().createBroadcastSource(false);
     }
 
     private InputStream getLanguageResource(@NotNull String languageFolder,
@@ -147,9 +146,9 @@ public abstract class BroadcastAddon implements AddonInitializer {
         return getClass().getClassLoader().getResourceAsStream(String.format("broadcast/%s/%s", languageFolder, resourcePath));
     }
 
-    public abstract Optional<MinecraftTextComponent> getCurrentBroadcastWideMessage(@NotNull VoicePlayer player);
+    public abstract Optional<McTextComponent> getCurrentBroadcastWideMessage(@NotNull VoicePlayer player);
 
-    public abstract BroadcastSource.Result initializeBroadcastSource(@NotNull VoicePlayer player,
+    public abstract SourceResult initializeBroadcastSource(@NotNull VoicePlayer player,
                                                                      @NotNull String type,
                                                                      @NotNull List<String> arguments);
 

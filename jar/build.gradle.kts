@@ -1,16 +1,14 @@
-val plasmoVoiceVersion: String by rootProject
-
 plugins {
     kotlin("jvm")
-    id("su.plo.voice.plugin") version("1.0.0")
+    id("su.plo.voice.plugin.entrypoints")
 }
 
 dependencies {
     compileOnly(project(":proxy"))
     compileOnly(project(":server"))
 
-    compileOnly("su.plo.voice.api:server:$plasmoVoiceVersion")
-    compileOnly("su.plo.voice.api:proxy:$plasmoVoiceVersion")
+    compileOnly(libs.plasmovoice.server)
+    compileOnly(libs.plasmovoice.proxy)
 }
 
 val platforms = setOf(

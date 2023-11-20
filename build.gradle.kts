@@ -1,11 +1,10 @@
 plugins {
-    id("java")
-    kotlin("jvm") version "1.6.10"
-    id("su.plo.crowdin.plugin") version("1.0.0") apply(false)
+    java
+    kotlin("jvm") version libs.versions.kotlin.get()
+    alias(libs.plugins.crowdin) apply false
+    alias(libs.plugins.plasmovoice) apply false
+    alias(libs.plugins.plasmovoice.java.templates)
 }
-
-group = "su.plo"
-version = "1.0.1"
 
 tasks {
     jar {
@@ -19,7 +18,7 @@ subprojects {
     apply(plugin = "java")
 
     dependencies {
-        annotationProcessor("org.projectlombok:lombok:1.18.24")
+        annotationProcessor(rootProject.libs.lombok)
     }
 
     tasks {
@@ -34,6 +33,6 @@ allprojects {
         mavenCentral()
         mavenLocal()
 
-        maven("https://repo.plo.su")
+        maven("https://repo.plasmoverse.com/snapshots")
     }
 }

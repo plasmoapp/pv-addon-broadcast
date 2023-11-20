@@ -1,45 +1,46 @@
 package su.plo.voice.broadcast.server;
 
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import su.plo.lib.api.chat.MinecraftTextComponent;
-import su.plo.lib.api.server.event.command.ServerCommandsRegisterEvent;
-import su.plo.lib.api.server.permission.PermissionDefault;
-import su.plo.lib.api.server.permission.PermissionsManager;
-import su.plo.lib.api.server.world.MinecraftServerWorld;
+import su.plo.slib.api.chat.component.McTextComponent;
+import su.plo.slib.api.permission.PermissionDefault;
+import su.plo.slib.api.permission.PermissionManager;
+import su.plo.slib.api.server.event.command.McServerCommandsRegisterEvent;
+import su.plo.slib.api.server.world.McServerWorld;
 import su.plo.voice.api.addon.AddonLoaderScope;
+import su.plo.voice.api.addon.InjectPlasmoVoice;
 import su.plo.voice.api.addon.annotation.Addon;
 import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoVoiceServer;
-import su.plo.voice.api.server.audio.source.ServerDirectSource;
+import su.plo.voice.api.server.audio.source.ServerBroadcastSource;
 import su.plo.voice.api.server.event.config.VoiceServerConfigReloadedEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.api.server.player.VoicePlayerManager;
 import su.plo.voice.api.server.player.VoiceServerPlayer;
 import su.plo.voice.broadcast.BroadcastAddon;
+import su.plo.voice.broadcast.BuildConstants;
+import su.plo.voice.broadcast.SourceResult;
 import su.plo.voice.broadcast.server.command.ServerBroadcastCommand;
-import su.plo.voice.broadcast.server.source.GlobalBroadcastSource;
-import su.plo.voice.broadcast.server.source.RangeBroadcastSource;
-import su.plo.voice.broadcast.server.source.WorldBroadcastSource;
-import su.plo.voice.broadcast.source.BroadcastSource;
+import su.plo.voice.broadcast.server.source.GlobalBroadcastFilter;
+import su.plo.voice.broadcast.server.source.RangeBroadcastFilter;
+import su.plo.voice.broadcast.server.source.WorldBroadcastFilter;
 import su.plo.voice.broadcast.state.BroadcastState;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.SERVER, version = "1.0.1", authors = {"Apehum"})
+@Addon(id = "pv-addon-broadcast", scope = AddonLoaderScope.SERVER, version = BuildConstants.VERSION, authors = {"Apehum"})
 public final class ServerBroadcastAddon extends BroadcastAddon {
 
-    @Inject
+    @InjectPlasmoVoice
     @Getter
     private PlasmoVoiceServer voiceServer;
 
     public ServerBroadcastAddon() {
-        ServerCommandsRegisterEvent.INSTANCE.registerListener((commandManager, minecraftServer) -> {
-            PermissionsManager permissions = minecraftServer.getPermissionsManager();
+        McServerCommandsRegisterEvent.INSTANCE.registerListener((commandManager, minecraftServer) -> {
+            PermissionManager permissions = minecraftServer.getPermissionManager();
 
             permissions.register("pv.addon.broadcast.*", PermissionDefault.OP);
             permissions.register("pv.addon.broadcast.range", PermissionDefault.OP);
@@ -65,28 +66,28 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
     }
 
     @Override
-    public Optional<MinecraftTextComponent> getCurrentBroadcastWideMessage(@NotNull VoicePlayer player) {
-        Optional<BroadcastSource<?>> source = getBroadcastSource(player, false);
+    public Optional<McTextComponent> getCurrentBroadcastWideMessage(@NotNull VoicePlayer player) {
+        Optional<ServerBroadcastSource> source = getBroadcastSource(player, false);
         if (!source.isPresent()) return Optional.empty();
 
-        Optional<BroadcastState> state = stateStore.getByPlayerId(player.getInstance().getUUID());
+        Optional<BroadcastState> state = stateStore.getByPlayerId(player.getInstance().getUuid());
         if (!state.isPresent()) return Optional.empty();
 
         switch (state.get().type()) {
             case "range": {
-                return Optional.of(MinecraftTextComponent.translatable(
+                return Optional.of(McTextComponent.translatable(
                         "pv.addon.broadcast.broadcasting_specific",
                         "range " + state.get().arguments().get(0))
                 );
             }
             case "server": {
-                return Optional.of(MinecraftTextComponent.translatable(
+                return Optional.of(McTextComponent.translatable(
                         "pv.addon.broadcast.broadcasting_wide",
                         "server"
                 ));
             }
             case "world": {
-                return Optional.of(MinecraftTextComponent.translatable(
+                return Optional.of(McTextComponent.translatable(
                         "pv.addon.broadcast.broadcasting_specific",
                         String.join(", ", state.get().arguments())
                 ));
@@ -98,85 +99,90 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
     }
 
     @Override
-    public BroadcastSource.Result initializeBroadcastSource(@NotNull VoicePlayer voicePlayer,
-                                                            @NotNull String type,
-                                                            @NotNull List<String> arguments) {
+    public SourceResult initializeBroadcastSource(
+            @NotNull VoicePlayer voicePlayer,
+            @NotNull String type,
+            @NotNull List<String> arguments
+    ) {
         VoiceServerPlayer player = (VoiceServerPlayer) voicePlayer;
 
         switch (type) {
             case "range": {
                 if (!player.getInstance().hasPermission("pv.addon.broadcast.range")) {
-                    return BroadcastSource.Result.NO_PERMISSION;
+                    return SourceResult.NO_PERMISSION;
                 }
 
                 if (arguments.size() == 0) {
-                    return BroadcastSource.Result.BAD_ARGUMENTS;
+                    return SourceResult.BAD_ARGUMENTS;
                 }
 
                 int range;
                 try {
                     range = Integer.parseInt(arguments.get(0));
                 } catch (NumberFormatException ignored) {
-                    return BroadcastSource.Result.BAD_ARGUMENTS;
+                    return SourceResult.BAD_ARGUMENTS;
                 }
 
-                if (range <= 0) return BroadcastSource.Result.BAD_ARGUMENTS;
+                if (range <= 0) return SourceResult.BAD_ARGUMENTS;
 
-                ServerDirectSource directSource = getDirectSource(player);
-                sourceByPlayerId.put(
-                        player.getInstance().getUUID(),
-                        new RangeBroadcastSource(directSource, player, range)
-                );
-                stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
+                broadcastSource.clearFilters();
+                broadcastSource.addFilter(new RangeBroadcastFilter(player, range));
+                broadcastSource.setSender(player);
+
+                sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
+                stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
                 broadcastWidePrinter.reset(player);
 
-                return BroadcastSource.Result.SUCCESS;
+                return SourceResult.SUCCESS;
             }
             case "server": {
                 if (!player.getInstance().hasPermission("pv.addon.broadcast.server")) {
-                    return BroadcastSource.Result.NO_PERMISSION;
+                    return SourceResult.NO_PERMISSION;
                 }
 
-                ServerDirectSource directSource = getDirectSource(player);
-                sourceByPlayerId.put(
-                        player.getInstance().getUUID(),
-                        new GlobalBroadcastSource(directSource, player)
-                );
-                stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
+                broadcastSource.clearFilters();
+                broadcastSource.addFilter(new GlobalBroadcastFilter(player));
+                broadcastSource.setSender(player);
+
+                sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
+                stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
                 broadcastWidePrinter.reset(player);
 
-                return BroadcastSource.Result.SUCCESS;
+                return SourceResult.SUCCESS;
             }
             case "world": {
                 if (!player.getInstance().hasPermission("pv.addon.broadcast.world")) {
-                    return BroadcastSource.Result.NO_PERMISSION;
+                    return SourceResult.NO_PERMISSION;
                 }
 
                 if (arguments.size() == 0) {
-                    return BroadcastSource.Result.BAD_ARGUMENTS;
+                    return SourceResult.BAD_ARGUMENTS;
                 }
 
                 List<String> argumentsList = ImmutableList.copyOf(arguments);
-                List<MinecraftServerWorld> worlds = voiceServer.getMinecraftServer().getWorlds().stream()
-                        .filter(world -> argumentsList.contains(world.getKey()))
+                List<McServerWorld> worlds = voiceServer.getMinecraftServer().getWorlds().stream()
+                        .filter(world -> argumentsList.contains(world.getName()))
                         .collect(Collectors.toList());
 
                 if (worlds.isEmpty()) {
-                    return BroadcastSource.Result.BAD_ARGUMENTS;
+                    return SourceResult.BAD_ARGUMENTS;
                 }
 
-                ServerDirectSource directSource = getDirectSource(player);
-                sourceByPlayerId.put(
-                        player.getInstance().getUUID(),
-                        new WorldBroadcastSource(directSource, player, worlds)
-                );
-                stateStore.put(player.getInstance().getUUID(), new BroadcastState(type, arguments));
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
+                broadcastSource.clearFilters();
+                broadcastSource.addFilter(new WorldBroadcastFilter(player, worlds));
+                broadcastSource.setSender(player);
+
+                sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
+                stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
                 broadcastWidePrinter.reset(player);
 
-                return BroadcastSource.Result.SUCCESS;
+                return SourceResult.SUCCESS;
             }
             default: {
-                return BroadcastSource.Result.UNKNOWN;
+                return SourceResult.UNKNOWN;
             }
         }
     }

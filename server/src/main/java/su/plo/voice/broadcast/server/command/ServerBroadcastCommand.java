@@ -4,40 +4,41 @@ import com.google.common.collect.ImmutableList;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import su.plo.lib.api.chat.MinecraftTextComponent;
-import su.plo.lib.api.server.command.MinecraftCommand;
-import su.plo.lib.api.server.command.MinecraftCommandSource;
-import su.plo.lib.api.server.player.MinecraftServerPlayer;
-import su.plo.lib.api.server.world.MinecraftServerWorld;
+import su.plo.slib.api.chat.component.McTextComponent;
+import su.plo.slib.api.command.McCommand;
+import su.plo.slib.api.command.McCommandSource;
+import su.plo.slib.api.server.entity.player.McServerPlayer;
+import su.plo.slib.api.server.world.McServerWorld;
 import su.plo.voice.api.server.player.VoiceServerPlayer;
+import su.plo.voice.broadcast.SourceResult;
 import su.plo.voice.broadcast.server.ServerBroadcastAddon;
-import su.plo.voice.broadcast.source.BroadcastSource;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-public class ServerBroadcastCommand implements MinecraftCommand {
+public class ServerBroadcastCommand implements McCommand {
 
     private static final List<String> SUB_COMMANDS = ImmutableList.of("range", "server", "world");
 
     private final ServerBroadcastAddon addon;
 
     @Override
-    public void execute(@NotNull MinecraftCommandSource source, @NotNull String[] arguments) {
-        if (!(source instanceof MinecraftServerPlayer)) {
-            source.sendMessage(MinecraftTextComponent.translatable("pv.error.player_only_command"));
+    public void execute(@NotNull McCommandSource source, @NotNull String[] arguments) {
+        if (!(source instanceof McServerPlayer)) {
+            source.sendMessage(McTextComponent.translatable("pv.error.player_only_command"));
             return;
         }
 
         if (arguments.length == 0) {
-            source.sendMessage(MinecraftTextComponent.translatable("pv.addon.broadcast.command.usage"));
+            source.sendMessage(McTextComponent.translatable("pv.addon.broadcast.command.usage"));
             return;
         }
 
-        MinecraftServerPlayer serverPlayer = (MinecraftServerPlayer) source;
-        VoiceServerPlayer player = addon.getVoiceServer().getPlayerManager().getPlayerById(serverPlayer.getUUID())
+        McServerPlayer serverPlayer = (McServerPlayer) source;
+        VoiceServerPlayer player = addon.getVoiceServer().getPlayerManager().getPlayerById(serverPlayer.getUuid())
                 .orElseThrow(() -> new IllegalStateException("Player not found"));
 
         String type = arguments[0];
@@ -46,13 +47,13 @@ public class ServerBroadcastCommand implements MinecraftCommand {
                 ? argumentsList.subList(1, argumentsList.size())
                 : Collections.emptyList();
 
-        BroadcastSource.Result result = addon.initializeBroadcastSource(player, type, argumentsList);
+        SourceResult result = addon.initializeBroadcastSource(player, type, argumentsList);
         switch (result) {
             case NO_PERMISSION:
-                source.sendMessage(MinecraftTextComponent.translatable("pv.error.no_permissions"));
+                source.sendMessage(McTextComponent.translatable("pv.error.no_permissions"));
                 break;
             case UNKNOWN:
-                source.sendMessage(MinecraftTextComponent.translatable("pv.addon.broadcast.command.usage"));
+                source.sendMessage(McTextComponent.translatable("pv.addon.broadcast.command.usage"));
                 break;
             default:
                 serverPlayer.sendMessage(getMessage(type, argumentsList, result));
@@ -61,7 +62,7 @@ public class ServerBroadcastCommand implements MinecraftCommand {
     }
 
     @Override
-    public List<String> suggest(@NotNull MinecraftCommandSource source, @NotNull String[] arguments) {
+    public @NotNull List<String> suggest(@NotNull McCommandSource source, @NotNull String[] arguments) {
         if (arguments.length == 0)
             return SUB_COMMANDS.stream()
                     .filter((command) -> hasPermission(source, command))
@@ -76,13 +77,15 @@ public class ServerBroadcastCommand implements MinecraftCommand {
         }
 
         if (subCommand.equals("world") && hasPermission(source, "world")) {
-            List<String> argumentsList = ImmutableList.copyOf(arguments);
+            List<String> argumentsList = Arrays.stream(arguments)
+                    .skip(1)
+                    .collect(Collectors.toList());
 
             return addon.getVoiceServer()
                     .getMinecraftServer()
                     .getWorlds()
                     .stream()
-                    .map(MinecraftServerWorld::getKey)
+                    .map(McServerWorld::getName)
                     .filter((key) -> key.startsWith(arguments[arguments.length - 1]) && !argumentsList.contains(key))
                     .collect(Collectors.toList());
         }
@@ -91,37 +94,39 @@ public class ServerBroadcastCommand implements MinecraftCommand {
     }
 
     @Override
-    public boolean hasPermission(@NotNull MinecraftCommandSource source, @Nullable String[] arguments) {
+    public boolean hasPermission(@NotNull McCommandSource source, @Nullable String[] arguments) {
         return source.hasPermission("pv.addon.broadcast.*") ||
                 SUB_COMMANDS.stream().anyMatch((command) -> source.hasPermission("pv.addon.broadcast." + command));
     }
 
-    private boolean hasPermission(@NotNull MinecraftCommandSource source, @NotNull String command) {
+    private boolean hasPermission(@NotNull McCommandSource source, @NotNull String command) {
         return source.hasPermission("pv.addon.broadcast.*") ||
                 source.hasPermission("pv.addon.broadcast." + command);
     }
 
-    private MinecraftTextComponent getMessage(@NotNull String type,
-                                              @NotNull List<String> arguments,
-                                              @NotNull BroadcastSource.Result result) {
+    private McTextComponent getMessage(
+            @NotNull String type,
+            @NotNull List<String> arguments,
+            @NotNull SourceResult result
+    ) {
         switch (type) {
             case "range":
-                return result == BroadcastSource.Result.SUCCESS
-                        ? MinecraftTextComponent.translatable("pv.addon.broadcast.command.range_set", Integer.parseInt(arguments.get(0)))
-                        : MinecraftTextComponent.translatable("pv.addon.broadcast.command.range_usage");
+                return result == SourceResult.SUCCESS
+                        ? McTextComponent.translatable("pv.addon.broadcast.command.range_set", Integer.parseInt(arguments.get(0)))
+                        : McTextComponent.translatable("pv.addon.broadcast.command.range_usage");
 
             case "server": {
-                return result == BroadcastSource.Result.SUCCESS
-                        ? MinecraftTextComponent.translatable("pv.addon.broadcast.command.server_set")
-                        : MinecraftTextComponent.translatable("pv.addon.broadcast.command.server_usage");
+                return result == SourceResult.SUCCESS
+                        ? McTextComponent.translatable("pv.addon.broadcast.command.server_set")
+                        : McTextComponent.translatable("pv.addon.broadcast.command.server_usage");
             }
             case "world": {
-                return result == BroadcastSource.Result.SUCCESS
-                        ? MinecraftTextComponent.translatable("pv.addon.broadcast.command.world_set", String.join(", ", arguments))
-                        : MinecraftTextComponent.translatable("pv.addon.broadcast.command.world_usage");
+                return result == SourceResult.SUCCESS
+                        ? McTextComponent.translatable("pv.addon.broadcast.command.world_set", String.join(", ", arguments))
+                        : McTextComponent.translatable("pv.addon.broadcast.command.world_usage");
             }
             default:
-                return MinecraftTextComponent.translatable("pv.addon.broadcast.command.usage");
+                return McTextComponent.translatable("pv.addon.broadcast.command.usage");
         }
     }
 }

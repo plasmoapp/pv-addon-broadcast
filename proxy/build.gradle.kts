@@ -1,5 +1,3 @@
-val plasmoVoiceVersion: String by rootProject
-
 plugins {
     id("su.plo.crowdin.plugin")
 }
@@ -7,10 +5,10 @@ plugins {
 dependencies {
     compileOnly(project(":common"))
 
-    compileOnly("su.plo.voice.api:proxy:$plasmoVoiceVersion")
+    compileOnly(libs.plasmovoice.proxy)
 }
 
-plasmoCrowdin {
+crowdin {
     projectId = "plasmo-voice-addons"
     sourceFileName = "proxy/broadcast.toml"
     resourceDir = "broadcast/proxy/languages"
