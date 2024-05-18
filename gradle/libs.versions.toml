@@ -15,7 +15,7 @@ lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 
 plasmovoice-server = { module = "su.plo.voice.api:server", version.ref = "plasmovoice" }
 plasmovoice-proxy = { module = "su.plo.voice.api:proxy", version.ref = "plasmovoice" }
-plasmovoice-server-common = { module = "su.plo.voice.api:server-common", version.ref = "plasmovoice" }
+plasmovoice-server-common = { module = "su.plo.voice.api:server-proxy-common", version.ref = "plasmovoice" }
 
 [plugins]
 plasmovoice = { id = "su.plo.voice.plugin.entrypoints", version.ref = "plasmovoice-plugin" }

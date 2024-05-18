@@ -4,18 +4,14 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import su.plo.slib.api.permission.PermissionDefault;
-import su.plo.voice.api.event.EventPriority;
-import su.plo.voice.api.event.EventSubscribe;
 import su.plo.voice.api.server.PlasmoBaseVoiceServer;
-import su.plo.voice.api.server.audio.capture.SelfActivationInfo;
+import su.plo.voice.api.server.audio.capture.PlayerActivationInfo;
 import su.plo.voice.api.server.audio.capture.ServerActivation;
 import su.plo.voice.api.server.audio.line.BaseServerSourceLine;
 import su.plo.voice.api.server.audio.source.ServerBroadcastSource;
-import su.plo.voice.api.server.event.audio.source.ServerSourcePacketEvent;
 import su.plo.voice.api.server.player.VoicePlayer;
 import su.plo.voice.broadcast.BroadcastAddon;
 import su.plo.voice.proto.packets.tcp.clientbound.SourceAudioEndPacket;
-import su.plo.voice.proto.packets.tcp.clientbound.SourceInfoPacket;
 import su.plo.voice.proto.packets.tcp.serverbound.PlayerAudioEndPacket;
 import su.plo.voice.proto.packets.udp.clientbound.SourceAudioPacket;
 import su.plo.voice.proto.packets.udp.serverbound.PlayerAudioPacket;
@@ -28,8 +24,6 @@ public final class BroadcastActivation {
     private static final String ACTIVATION_NAME = "broadcast";
 
     private final PlasmoBaseVoiceServer voiceServer;
-
-    private final SelfActivationInfo selfActivationInfo;
 
     private final BroadcastAddon addon;
 
@@ -46,8 +40,6 @@ public final class BroadcastActivation {
             @NotNull BroadcastWidePrinter widePrinter
     ) {
         this.voiceServer = voiceServer;
-
-        this.selfActivationInfo = new SelfActivationInfo(voiceServer.getUdpConnectionManager());
 
         this.addon = addon;
 
@@ -80,35 +72,6 @@ public final class BroadcastActivation {
                 "plasmovoice:textures/icons/speaker_broadcast.png",
                 addon.getConfig().sourceLineWeight()
         ).build();
-    }
-
-    @EventSubscribe(priority = EventPriority.HIGHEST)
-    public void onSourceSendPacket(@NotNull ServerSourcePacketEvent event) {
-        if (!(event.getSource() instanceof ServerBroadcastSource)) return;
-
-        ServerBroadcastSource source = (ServerBroadcastSource) event.getSource();
-        if (source.getSender() == null) return;
-
-        VoicePlayer sender = source.getSender();
-        if (addon.getBroadcastSource(sender, false)
-                .map(source::equals)
-                .orElse(false)) return;
-
-        if (!selfActivationInfo.getLastPlayerActivationIds()
-                .containsKey(sender.getInstance().getUuid())
-        ) {
-            return;
-        }
-
-        if (event.getPacket() instanceof SourceInfoPacket) {
-            selfActivationInfo.updateSelfSourceInfo(
-                    sender,
-                    source,
-                    ((SourceInfoPacket) event.getPacket()).getSourceInfo()
-            );
-        } else if (event.getPacket() instanceof SourceAudioEndPacket) {
-            sender.sendPacket(event.getPacket());
-        }
     }
 
     private ServerActivation.Result onActivation(@NotNull VoicePlayer player, @NotNull PlayerAudioPacket packet) {
@@ -147,12 +110,7 @@ public final class BroadcastActivation {
                 (short) 0
         );
 
-        if (source.sendAudioPacket(sourcePacket, packet.getActivationId())) {
-            selfActivationInfo.sendAudioInfo(player, source, packet.getActivationId(), sourcePacket);
-            return true;
-        }
-
-        return false;
+        return source.sendAudioPacket(sourcePacket, new PlayerActivationInfo(player, packet));
     }
 
     private boolean sendAudioEndPacket(@NotNull ServerBroadcastSource source,
