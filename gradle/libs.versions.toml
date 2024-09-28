@@ -7,7 +7,7 @@ config = "1.0.0"
 lombok = "1.18.24"
 
 plasmovoice-plugin = "1.0.2-SNAPSHOT"
-crowdin-plugin = "1.0.2-SNAPSHOT"
+crowdin-plugin = "1.1.0-SNAPSHOT"
 
 [libraries]
 config = { module = "su.plo.config:config", version.ref = "config" }

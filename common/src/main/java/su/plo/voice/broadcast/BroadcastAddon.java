@@ -27,6 +27,7 @@ import su.plo.voice.broadcast.state.JsonBroadcastStateStore;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.*;
 
 public abstract class BroadcastAddon implements AddonInitializer {
@@ -77,7 +78,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
 
             ServerLanguages languages = voiceServer.getLanguages();
             languages.register(
-                    "plasmo-voice-addons",
+                    URI.create("https://github.com/plasmoapp/plasmo-voice-crowdin/archive/refs/heads/addons.zip").toURL(),
                     languageFolder + "/groups.toml",
                     (resourcePath) -> getLanguageResource(languageFolder, resourcePath),
                     new File(addonFolder, "languages")
