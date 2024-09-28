@@ -43,6 +43,8 @@ jobs:
           neoforge
           paper
           spigot
+          velocity
+          bungeecord
         game-versions: |
           1.16.5
           1.17.1
