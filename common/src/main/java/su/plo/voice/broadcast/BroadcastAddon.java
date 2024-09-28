@@ -67,7 +67,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
     }
 
     protected synchronized void loadConfig(@NotNull String languageFolder) {
-        File addonFolder = new File(voiceServer.getConfigFolder(), "addons/broadcast");
+        File addonFolder = new File(voiceServer.getMinecraftServer().getConfigsFolder(), "pv-addon-broadcast");
         addonFolder.mkdirs();
 
         try {
@@ -79,7 +79,7 @@ public abstract class BroadcastAddon implements AddonInitializer {
             ServerLanguages languages = voiceServer.getLanguages();
             languages.register(
                     URI.create("https://github.com/plasmoapp/plasmo-voice-crowdin/archive/refs/heads/addons.zip").toURL(),
-                    languageFolder + "/groups.toml",
+                    languageFolder + "/broadcast.toml",
                     (resourcePath) -> getLanguageResource(languageFolder, resourcePath),
                     new File(addonFolder, "languages")
             );
