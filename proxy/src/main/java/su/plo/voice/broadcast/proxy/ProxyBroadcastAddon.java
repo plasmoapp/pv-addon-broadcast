@@ -121,12 +121,13 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
                     return SourceResult.BAD_ARGUMENTS;
                 }
 
-                ServerBroadcastSource source = getBroadcastSource(player);
-                source.clearFilters();
-                source.addFilter(new ProxyBroadcastFilter(player));
-                source.setSender(player);
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player, source -> {
+                    source.clearFilters();
+                    source.addFilter(new ProxyBroadcastFilter(player));
+                    source.setSender(player);
+                });
 
-                sourceByPlayerId.put(player.getInstance().getUuid(), source);
+                sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
                 stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
                 broadcastWidePrinter.reset(player);
 
@@ -148,12 +149,13 @@ public final class ProxyBroadcastAddon extends BroadcastAddon {
 
                 if (servers.isEmpty()) return SourceResult.BAD_ARGUMENTS;
 
-                ServerBroadcastSource source = getBroadcastSource(player);
-                source.clearFilters();
-                source.addFilter(new ServerBroadcastFilter(player, servers));
-                source.setSender(player);
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player, source -> {
+                    source.clearFilters();
+                    source.addFilter(new ServerBroadcastFilter(player, servers));
+                    source.setSender(player);
+                });
 
-                sourceByPlayerId.put(player.getInstance().getUuid(), source);
+                sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
                 stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
                 broadcastWidePrinter.reset(player);
 

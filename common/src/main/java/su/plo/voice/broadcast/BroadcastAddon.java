@@ -23,12 +23,14 @@ import su.plo.voice.broadcast.activation.BroadcastWidePrinter;
 import su.plo.voice.broadcast.config.BroadcastConfig;
 import su.plo.voice.broadcast.state.BroadcastStateStore;
 import su.plo.voice.broadcast.state.JsonBroadcastStateStore;
+import su.plo.voice.proto.data.audio.codec.opus.OpusDecoderInfo;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.*;
+import java.util.function.Consumer;
 
 public abstract class BroadcastAddon implements AddonInitializer {
 
@@ -130,16 +132,19 @@ public abstract class BroadcastAddon implements AddonInitializer {
         return getBroadcastSource(player, false);
     }
 
-    public ServerBroadcastSource getBroadcastSource(@NotNull VoicePlayer player) {
+    public ServerBroadcastSource getBroadcastSource(
+            @NotNull VoicePlayer player,
+            @NotNull Consumer<ServerBroadcastSource> builder
+    ) {
         return Optional.ofNullable(sourceByPlayerId.get(player.getInstance().getUuid()))
-                .orElseGet(this::createBroadcastSource);
+                .orElseGet(() -> createBroadcastSource(builder));
     }
 
-    private ServerBroadcastSource createBroadcastSource() {
+    private ServerBroadcastSource createBroadcastSource(@NotNull Consumer<ServerBroadcastSource> builder) {
         if (broadcastActivation.getSourceLine() == null)
             throw new IllegalStateException("Broadcast source line is not initialized");
 
-        return broadcastActivation.getSourceLine().createBroadcastSource(false);
+        return broadcastActivation.getSourceLine().createBroadcastSource(false, new OpusDecoderInfo(), builder);
     }
 
     private InputStream getLanguageResource(@NotNull String languageFolder,

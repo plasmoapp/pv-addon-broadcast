@@ -2,7 +2,7 @@
 kotlin = "1.8.22"
 kotlinx-json = "1.5.1"
 
-plasmovoice = "2.1.0-SNAPSHOT"
+plasmovoice = "2.1.8"
 config = "1.0.0"
 lombok = "1.18.24"
 

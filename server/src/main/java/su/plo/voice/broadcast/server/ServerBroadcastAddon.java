@@ -125,10 +125,11 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
 
                 if (range <= 0) return SourceResult.BAD_ARGUMENTS;
 
-                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
-                broadcastSource.clearFilters();
-                broadcastSource.addFilter(new RangeBroadcastFilter(player, range));
-                broadcastSource.setSender(player);
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player, source -> {
+                    source.clearFilters();
+                    source.addFilter(new RangeBroadcastFilter(player, range));
+                    source.setSender(player);
+                });
 
                 sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
                 stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
@@ -141,10 +142,11 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                     return SourceResult.NO_PERMISSION;
                 }
 
-                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
-                broadcastSource.clearFilters();
-                broadcastSource.addFilter(new GlobalBroadcastFilter(player));
-                broadcastSource.setSender(player);
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player, source -> {
+                    source.clearFilters();
+                    source.addFilter(new GlobalBroadcastFilter(player));
+                    source.setSender(player);
+                });
 
                 sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
                 stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));
@@ -170,10 +172,11 @@ public final class ServerBroadcastAddon extends BroadcastAddon {
                     return SourceResult.BAD_ARGUMENTS;
                 }
 
-                ServerBroadcastSource broadcastSource = getBroadcastSource(player);
-                broadcastSource.clearFilters();
-                broadcastSource.addFilter(new WorldBroadcastFilter(player, worlds));
-                broadcastSource.setSender(player);
+                ServerBroadcastSource broadcastSource = getBroadcastSource(player, source -> {
+                    source.clearFilters();
+                    source.addFilter(new WorldBroadcastFilter(player, worlds));
+                    source.setSender(player);
+                });
 
                 sourceByPlayerId.put(player.getInstance().getUuid(), broadcastSource);
                 stateStore.put(player.getInstance().getUuid(), new BroadcastState(type, arguments));

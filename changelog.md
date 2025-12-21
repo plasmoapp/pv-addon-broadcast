@@ -1,2 +1,1 @@
-- Update to Plasmo Voice 2.1.0. This version is not compatible with PV 2.0.x.
-- Addon's folder is now located at <configs_folder>/pv-addon-broadcast.
+- Fixed absent sender when listening for `ServerSourceCreatedEvent`.

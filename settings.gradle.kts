@@ -11,4 +11,9 @@ pluginManagement {
 
 rootProject.name = "pv-addon-broadcast"
 
-include("common", "proxy", "server", "jar")
+val requestedTasks: List<String> = gradle.startParameter.taskNames
+
+include("common", "proxy", "server")
+if (requestedTasks.contains("build")) {
+    include("jar")
+}
