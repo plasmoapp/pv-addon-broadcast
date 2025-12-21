@@ -125,8 +125,9 @@ public abstract class BroadcastAddon implements AddonInitializer {
 
         if (!initializeDefault || getDefaultSourceType() == null) return Optional.empty();
 
-        if (initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList()) != SourceResult.SUCCESS) {
-            throw new IllegalStateException("Failed to initialize default broadcast source");
+        SourceResult result = initializeBroadcastSource(player, getDefaultSourceType(), Collections.emptyList());
+        if (result != SourceResult.SUCCESS) {
+            throw new IllegalStateException("Failed to initialize default broadcast source: " + result);
         }
 
         return getBroadcastSource(player, false);
