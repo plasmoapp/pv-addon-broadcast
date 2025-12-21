@@ -45,7 +45,7 @@ All permissions are only available to OP by default.
 
 ### Permission to use broadcasting
 
-`pv.activation.priority`
+`pv.activation.broadcast`
 
 ### Broadcasting scope permissions
 
