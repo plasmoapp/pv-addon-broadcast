@@ -14,9 +14,9 @@ jobs:
       packages: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up JDK
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: temurin
         java-version: |
@@ -25,17 +25,20 @@ jobs:
           17
 
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+      uses: gradle/actions/setup-gradle@v5
 
     - name: Build with Gradle
       run: ./gradlew build
 
     - name: Publish to Modrinth/CurseForge
-      uses: Apehum/mc-publish@v1.1
+      uses: apehum/mc-publish@v1.2
       with:
         modrinth-id: ZI9h3Y7k
         modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
         changelog-file: changelog.md
+
+        curseforge-id: 1412699
+        curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
         loaders: |
           fabric
@@ -49,18 +52,7 @@ jobs:
           1.16.5
           1.17.1
           1.18.2
-          1.19.2
-          1.19.3
-          1.19.4
-          1.20
-          1.20.1
-          1.20.2
-          1.20.3
-          1.20.4
-          1.20.5
-          1.20.6
-          1.21
-          1.21.1
+          >=1.19.2
         
     - name: Publish to GitHub
       uses: Apehum/mc-publish@v1.1
