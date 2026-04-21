@@ -1,9 +1,16 @@
 name: Publish Release
 
 on:
-  push:
-    branches:
-      - release
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Release type'
+        required: true
+        type: choice
+        options:
+          - release
+          - beta
+          - alpha
 
 jobs:
   build:
@@ -31,10 +38,15 @@ jobs:
       run: ./gradlew build
 
     - name: Publish to Modrinth/CurseForge
-      uses: apehum/mc-publish@v1.2
+      uses: apehum/mc-publish@master
       with:
         modrinth-id: ZI9h3Y7k
         modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+        modrinth-dependencies: |
+          plasmo-voice
+
+        version-type: ${{ inputs.release-type }}
+
         changelog-file: changelog.md
 
         curseforge-id: 1412699
@@ -44,7 +56,9 @@ jobs:
           fabric
           forge
           neoforge
+          folia
           paper
+          purpur
           spigot
           velocity
           bungeecord
@@ -59,4 +73,5 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         github-generate-changelog: false
+        github-prerelease: ${{ inputs.release-type != 'release' }}
         changelog-file: changelog.md
